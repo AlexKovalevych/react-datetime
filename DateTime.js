@@ -10,6 +10,8 @@ var assign = require('object-assign'),
 ;
 
 var TYPES = React.PropTypes;
+var VIEW_MODES = ['years', 'months', 'days', 'time'];
+var MIN_VIEW_MODES = ['years', 'months', 'days'];
 var Datetime = React.createClass({
 	mixins: [
 		require('./src/onClickOutside')
@@ -32,7 +34,8 @@ var Datetime = React.createClass({
 		// dateFormat: TYPES.string | TYPES.bool,
 		// timeFormat: TYPES.string | TYPES.bool,
 		inputProps: TYPES.object,
-		viewMode: TYPES.oneOf(['years', 'months', 'days', 'time']),
+		viewMode: TYPES.oneOf(VIEW_MODES),
+		minViewMode: TYPES.oneOf(MIN_VIEW_MODES),
 		isValidDate: TYPES.func,
 		open: TYPES.bool,
 		strictParsing: TYPES.bool
@@ -44,6 +47,7 @@ var Datetime = React.createClass({
 			className: '',
 			defaultValue: '',
 			viewMode: 'days',
+			minViewMode: 'days',
 			inputProps: {},
 			input: true,
 			onFocus: nof,
@@ -61,7 +65,15 @@ var Datetime = React.createClass({
 		if( state.open == undefined )
 			state.open = !this.props.input;
 
-		state.currentView = this.props.dateFormat ? this.props.viewMode : 'time';
+		var viewMode = this.props.viewMode;
+		if (this.props.minViewMode) {
+			var minViewModeIndex = MIN_VIEW_MODES.indexOf(this.props.minViewMode);
+			var viewModeIndex = VIEW_MODES.indexOf(viewMode);
+			if (minViewModeIndex < viewModeIndex) {
+				viewMode = this.props.minViewMode;
+			}
+		}
+		state.currentView = this.props.dateFormat ? viewMode : 'time';
 
 		return state;
 	},
@@ -165,11 +177,64 @@ var Datetime = React.createClass({
 				year: 'months'
 			}
 		;
+		if (this.props.minViewMode == 'months') {
+			nextViews = {
+				month: 'months',
+				year: 'months'
+			};
+		}
+		if (this.props.minViewMode == 'years') {
+			nextViews = {
+				year: 'years'
+			};
+		}
 		return function( e ){
-			me.setState({
-				viewDate: me.state.viewDate.clone()[ type ]( parseInt(e.target.getAttribute('data-value')) ).startOf( type ),
-				currentView: nextViews[ type ]
-			});
+			if (me.props.minViewMode == 'months' && type == 'month') {
+				var viewDate = me.state.viewDate,
+					currentDate = me.state.selectedDate || viewDate,
+					date
+				;
+
+				date = viewDate.clone().month( parseInt(e.target.getAttribute('data-value')) );
+				if( !me.props.value ){
+					me.setState({
+						selectedDate: date,
+						viewDate: date.clone().startOf('month'),
+						inputValue: date.format( me.state.inputFormat )
+					}, function () {
+						if (me.props.closeOnSelect && close) {
+							me.closeCalendar();
+						}
+					});
+				}
+
+				me.props.onChange( date );
+			} else if (me.props.minViewMode == 'years' && type == 'year') {
+				var viewDate = me.state.viewDate,
+					currentDate = me.state.selectedDate || viewDate,
+					date
+				;
+
+				date = viewDate.clone().year( parseInt(e.target.getAttribute('data-value')) );
+				if( !me.props.value ){
+					me.setState({
+						selectedDate: date,
+						viewDate: date.clone().startOf('month'),
+						inputValue: date.format( me.state.inputFormat )
+					}, function () {
+						if (me.props.closeOnSelect && close) {
+							me.closeCalendar();
+						}
+					});
+				}
+
+				me.props.onChange( date );
+			} else {
+				me.setState({
+					viewDate: me.state.viewDate.clone()[ type ]( parseInt(e.target.getAttribute('data-value')) ).startOf( type ),
+					currentView: nextViews[ type ]
+				});
+			}
 		};
 	},
 
