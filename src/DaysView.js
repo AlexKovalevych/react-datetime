@@ -39,7 +39,7 @@ var DateTimePickerDays = React.createClass({
 	 */
 	getDaysOfWeek: function( locale ){
 		var days = locale._weekdaysMin,
-			first = locale.firstDayOfWeek(),
+			first = locale._week.dow,
 			dow = [],
 			i = 0
 		;
