@@ -21,15 +21,33 @@ var DateTimePickerMonths = React.createClass({
 		var date = this.props.selectedDate,
 			month = this.props.viewDate.month(),
 			year = this.props.viewDate.year(),
+			isValid = this.props.isValidDate || this.alwaysValidDate,
 			rows = [],
 			i = 0,
 			months = [],
 			renderer = this.props.renderMonth || this.renderMonth,
-			classes, props
+			classes, props, currentMonth, isDisabled, noOfDaysInMonth, daysInMonth, validDay,
+			// Date is irrelevant because we're only interested in month
+			irrelevantDate = 1
 		;
 
 		while (i < 12) {
+			currentMonth =
+				this.props.viewDate.clone().set({ year: year, month: i, date: irrelevantDate });
+			noOfDaysInMonth = currentMonth.endOf( 'month' ).format( 'D' );
+			daysInMonth = Array.from({ length: noOfDaysInMonth }, function( e, i ) {
+				return i + 1;
+			});
+			validDay = daysInMonth.find(function( d ) {
+				var day = currentMonth.clone().set( 'date', d );
+				return isValid( day );
+			});
+
+			isDisabled = ( validDay === undefined );
+
 			classes = "rdtMonth";
+			if ( isDisabled )
+				classes += ' rdtDisabled';
 			if( date && i === month && year === date.year() )
 				classes += " rdtActive";
 
@@ -37,8 +55,11 @@ var DateTimePickerMonths = React.createClass({
 				key: i,
 				'data-value': i,
 				className: classes,
-				onClick: this.props.setDate('month')
 			};
+
+			if ( !isDisabled )
+				props.onClick = ( this.props.updateOn === 'months' ?
+					this.updateSelectedMonth : this.props.setDate( 'month' ) );
 
 			months.push( renderer( props, i, year, date && date.clone() ));
 
